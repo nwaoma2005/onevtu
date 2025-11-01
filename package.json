@@ -1,0 +1,17 @@
+{
+  "name": "onevtu-fullstack",
+  "version": "1.0.0",
+  "description": "OneVTU - Virtual Top-Up Platform",
+  "scripts": {
+    "install-client": "cd client && npm install",
+    "install-server": "cd server && npm install",
+    "install-all": "npm run install-client && npm run install-server",
+    "build-client": "cd client && npm run build",
+    "start": "cd server && npm start",
+    "dev-client": "cd client && npm start",
+    "dev-server": "cd server && npm run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
