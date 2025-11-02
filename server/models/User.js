@@ -35,6 +35,11 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
+  role: {
+    type: String,
+    enum: ['user', 'admin'],
+    default: 'user'
+  },
   isActive: {
     type: Boolean,
     default: true
@@ -56,13 +61,3 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 };
 
 module.exports = mongoose.model('User', userSchema);
-const userSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  phone: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  referralCode: { type: String, unique: true },
-  walletBalance: { type: Number, default: 0 },
-  role: { type: String, enum: ['user', 'admin'], default: 'user' }, // ← Add this
-  createdAt: { type: Date, default: Date.now }
-});
