@@ -257,8 +257,6 @@ router.get('/history', auth, async (req, res) => {
     });
   }
 });
-
-module.exports = router;
 // Manual wallet funding (for testing/admin)
 router.post('/fund-manual', auth, async (req, res) => {
   try {
@@ -309,3 +307,4 @@ router.post('/fund-manual', auth, async (req, res) => {
     });
   }
 });
+module.exports = router;
