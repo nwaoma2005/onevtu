@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-// ✅ HARDCODED - No rebuild needed
 const API_URL = 'https://onevtu.onrender.com/api';
 
 const api = axios.create({
@@ -44,7 +43,9 @@ export const authAPI = {
 
 export const walletAPI = {
   getBalance: () => api.get('/wallet/balance'),
-  fundWallet: (data) => api.post('/wallet/fund', data),
+  fundWallet: (data) => api.post('/wallet/fund', data), // Paystack
+  fundWalletManual: (data) => api.post('/wallet/fund-manual', data), // Manual
+  verifyPayment: (reference) => api.get(`/wallet/verify-payment/${reference}`),
   getHistory: () => api.get('/wallet/history'),
 };
 
@@ -63,6 +64,15 @@ export const transactionAPI = {
   getAll: (params) => api.get('/transactions', { params }),
   getById: (id) => api.get(`/transactions/${id}`),
   download: (id) => api.get(`/transactions/${id}/receipt`, { responseType: 'blob' }),
+};
+
+export const adminAPI = {
+  getStats: () => api.get('/admin/stats'),
+  getUsers: (params) => api.get('/admin/users', { params }),
+  getUserDetails: (userId) => api.get(`/admin/users/${userId}`),
+  creditWallet: (data) => api.post('/admin/credit-wallet', data),
+  debitWallet: (data) => api.post('/admin/debit-wallet', data),
+  getTransactions: (params) => api.get('/admin/transactions', { params }),
 };
 
 export default api;
