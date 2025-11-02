@@ -27,6 +27,7 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Validation
     if (formData.password !== formData.confirmPassword) {
       setNotification({
         message: 'Passwords do not match!',
@@ -35,15 +36,27 @@ const Register = () => {
       return;
     }
 
+    if (formData.password.length < 8) {
+      setNotification({
+        message: 'Password must be at least 8 characters',
+        type: 'error',
+      });
+      return;
+    }
+
     setLoading(true);
     
     try {
+      console.log('Attempting registration...'); // Debug log
+      
       const response = await authAPI.register({
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
       });
+      
+      console.log('Registration response:', response.data); // Debug log
       
       const { token, user } = response.data;
       
@@ -54,8 +67,21 @@ const Register = () => {
         navigate('/dashboard');
       }, 1000);
     } catch (error) {
+      console.error('Registration error:', error); // Debug log
+      console.error('Error response:', error.response); // Debug log
+      
+      let errorMessage = 'Registration failed. Please try again.';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else if (!error.response) {
+        errorMessage = 'Cannot connect to server. Please check your internet connection.';
+      }
+      
       setNotification({
-        message: error.response?.data?.message || 'Registration failed. Please try again.',
+        message: errorMessage,
         type: 'error',
       });
     } finally {
@@ -119,6 +145,7 @@ const Register = () => {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="08012345678"
                   required
+                  maxLength="11"
                 />
               </div>
 
