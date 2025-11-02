@@ -69,3 +69,7 @@ function App() {
 }
 
 export default App;
+import AdminDashboard from './pages/AdminDashboard';
+
+// In your routes:
+<Route path="/admin" element={<AdminDashboard />} />
