@@ -1,7 +1,3 @@
-import AdminDashboard from './pages/AdminDashboard';
-
-// In your routes:
-<Route path="/admin" element={<AdminDashboard />} />
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
@@ -15,7 +11,10 @@ import Electricity from './pages/Electricity';
 import Transactions from './pages/Transactions';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminDashboard from './pages/AdminDashboard';
 
+// In your routes:
+<Route path="/admin" element={<AdminDashboard />} />
 function App() {
   return (
     <Router>
