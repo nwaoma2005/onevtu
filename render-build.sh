@@ -1,10 +1,22 @@
 #!/usr/bin/env bash
 set -o errexit
 
-echo "Installing dependencies..."
-npm run install-all
+echo "📦 Installing root dependencies..."
+npm install
 
-echo "Building React frontend..."
-npm run build-client
+echo "📦 Installing client dependencies..."
+cd client
+npm install
+cd ..
 
-echo "Build completed!"
+echo "📦 Installing server dependencies..."
+cd server
+npm install
+cd ..
+
+echo "🏗️ Building React frontend..."
+cd client
+npm run build
+cd ..
+
+echo "✅ Build completed successfully!"
