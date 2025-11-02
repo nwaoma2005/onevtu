@@ -6,7 +6,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import BuyAirtime from './pages/BuyAirtime';
 import BuyData from './pages/BuyData';
-import CableTV from './pages/CableTV';
+import CableTV from './pages/CableTv';
 import Electricity from './pages/Electricity';
 import Transactions from './pages/Transactions';
 import Profile from './pages/Profile';
