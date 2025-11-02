@@ -65,3 +65,5 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
+// After your existing routes
+app.use('/api/admin', require('./routes/admin'));
