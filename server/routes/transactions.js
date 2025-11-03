@@ -169,7 +169,7 @@ router.post('/initialize-payment', auth, async (req, res) => {
     const transaction = await Transaction.create({
       user: req.userId,
       type: 'credit',
-      serviceType: 'wallet_funding',
+      serviceType: 'wallet-funding',
       amount: amount,
       reference: reference,
       status: 'pending',
