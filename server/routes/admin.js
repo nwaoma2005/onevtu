@@ -7,21 +7,37 @@ const auth = require('../middleware/auth');
 // Middleware to check if user is admin
 const isAdmin = async (req, res, next) => {
   try {
+    console.log('Checking admin access for userId:', req.userId); // Debug
+    
     const user = await User.findById(req.userId);
+    
+    if (!user) {
+      console.log('User not found'); // Debug
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+    
+    console.log('User role:', user.role); // Debug
     
     // Check if user has admin role
     if (user.role !== 'admin') {
+      console.log('Access denied - not admin'); // Debug
       return res.status(403).json({ 
         success: false, 
         message: 'Access denied. Admin only.' 
       });
     }
     
+    console.log('Admin access granted'); // Debug
     next();
   } catch (error) {
+    console.error('isAdmin error:', error); // Debug
     res.status(500).json({ 
       success: false, 
-      message: 'Authorization failed' 
+      message: 'Authorization failed',
+      error: error.message 
     });
   }
 };
