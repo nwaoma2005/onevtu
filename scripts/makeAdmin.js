@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
    mongoose.connect(process.env.MONGODB_URI);
 
    async function makeAdmin() {
-     const email = 'your-email@example.com'; // ← Change this to YOUR email
+     const email =nwaomavisuals@gmail.com; // ← Change this to YOUR email
      
      const user = await User.findOne({ email });
      
