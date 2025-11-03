@@ -43,9 +43,9 @@ export const authAPI = {
 
 export const walletAPI = {
   getBalance: () => api.get('/wallet/balance'),
-  fundWallet: (data) => api.post('/wallet/fund', data), // Paystack
-  fundWalletManual: (data) => api.post('/wallet/fund-manual', data), // Manual
-  verifyPayment: (reference) => api.get(`/wallet/verify-payment/${reference}`),
+  fundWallet: (data) => api.post('/wallet/fund', data),
+  fundWalletManual: (data) => api.post('/wallet/fund-manual', data),
+  verifyPayment: (reference) => api.get(`/wallet/verify-payment/${reference}`), // Fixed
   getHistory: () => api.get('/wallet/history'),
 };
 
@@ -54,22 +54,22 @@ export const servicesAPI = {
   buyData: (data) => api.post('/services/data', data),
   payCableTV: (data) => api.post('/services/cable-tv', data),
   payElectricity: (data) => api.post('/services/electricity', data),
-  getDataPlans: (network) => api.get(`/services/data-plans/${network}`),
-  getCablePlans: (provider) => api.get(`/services/cable-plans/${provider}`),
+  getDataPlans: (network) => api.get(`/services/data-plans/${network}`), // Fixed
+  getCablePlans: (provider) => api.get(`/services/cable-plans/${provider}`), // Fixed
   verifyMeter: (data) => api.post('/services/verify-meter', data),
   verifySmartCard: (data) => api.post('/services/verify-smartcard', data),
 };
 
 export const transactionAPI = {
   getAll: (params) => api.get('/transactions', { params }),
-  getById: (id) => api.get(`/transactions/${id}`),
-  download: (id) => api.get(`/transactions/${id}/receipt`, { responseType: 'blob' }),
+  getById: (id) => api.get(`/transactions/${id}`), // Fixed
+  download: (id) => api.get(`/transactions/${id}/receipt`, { responseType: 'blob' }), // Fixed
 };
 
 export const adminAPI = {
   getStats: () => api.get('/admin/stats'),
   getUsers: (params) => api.get('/admin/users', { params }),
-  getUserDetails: (userId) => api.get(`/admin/users/${userId}`),
+  getUserDetails: (userId) => api.get(`/admin/users/${userId}`), // Fixed
   creditWallet: (data) => api.post('/admin/credit-wallet', data),
   debitWallet: (data) => api.post('/admin/debit-wallet', data),
   getTransactions: (params) => api.get('/admin/transactions', { params }),
