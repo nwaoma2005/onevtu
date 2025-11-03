@@ -133,7 +133,7 @@ const Dashboard = () => {
       case 'data': return <Wifi className="text-current" size={20} />;
       case 'cable-tv': return <Tv className="text-current" size={20} />;
       case 'electricity': return <Zap className="text-current" size={20} />;
-      case 'wallet_funding': return <Zap className="text-current" size={20} />;
+      case 'wallet-funding': return <Zap className="text-current" size={20} />;
       default: return <Smartphone className="text-current" size={20} />;
     }
   };
@@ -264,7 +264,7 @@ const Dashboard = () => {
                           </div>
                           <div>
                             <p className="font-semibold capitalize">
-                              {tx.serviceType === 'wallet_funding' ? 'Wallet Funding' : 
+                              {tx.serviceType === 'wallet-funding' ? 'Wallet Funding' : 
                                `${tx.serviceType.replace('-', ' ')} - ${tx.network || tx.provider || ''}`}
                             </p>
                             <p className="text-sm text-gray-600">{tx.recipient}</p>
