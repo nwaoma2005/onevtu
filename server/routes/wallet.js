@@ -48,7 +48,7 @@ router.post('/fund', auth, async (req, res) => {
         callback_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/callback`,
         metadata: {
           user_id: user._id.toString(),
-          purpose: 'wallet_funding',
+          purpose: 'wallet-funding',
           custom_fields: [
             {
               display_name: 'Customer Name',
