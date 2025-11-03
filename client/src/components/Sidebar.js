@@ -1,11 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Wallet, Smartphone, Wifi, Tv, Zap, History, Settings, LogOut } from 'lucide-react';
+import { Wallet, Smartphone, Wifi, Tv, Zap, History, Settings, LogOut, Shield } from 'lucide-react';
 import { clearAuth } from '../utils/auth';
+import { authAPI } from '../services/api';
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    loadUser();
+  }, []);
+
+  const loadUser = async () => {
+    try {
+      const response = await authAPI.getProfile();
+      setUser(response.data.user);
+      console.log('User loaded:', response.data.user); // Debug
+    } catch (error) {
+      console.error('Failed to load user:', error);
+    }
+  };
 
   const menuItems = [
     { path: '/dashboard', icon: Wallet, label: 'Dashboard' },
@@ -43,6 +59,19 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           </span>
         </div>
 
+        {/* User Info */}
+        {user && (
+          <div className="p-4 border-b border-gray-200">
+            <p className="text-sm text-gray-500">Welcome back</p>
+            <p className="font-semibold text-gray-800">{user.name}</p>
+            {user.role === 'admin' && (
+              <span className="inline-block mt-2 px-2 py-1 bg-yellow-400 text-black text-xs font-bold rounded">
+                ADMIN
+              </span>
+            )}
+          </div>
+        )}
+
         <nav className="p-4 space-y-2">
           {menuItems.map(item => (
             <Link
@@ -59,6 +88,22 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
               <span className="font-medium">{item.label}</span>
             </Link>
           ))}
+
+          {/* Admin Panel Link - Only visible to admins */}
+          {user?.role === 'admin' && (
+            <Link
+              to="/admin"
+              onClick={() => setSidebarOpen(false)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition border-2 ${
+                location.pathname === '/admin'
+                  ? 'bg-yellow-400 text-black border-yellow-500 font-bold'
+                  : 'text-yellow-600 border-yellow-400 hover:bg-yellow-50'
+              }`}
+            >
+              <Shield size={20} />
+              <span className="font-medium">Admin Panel</span>
+            </Link>
+          )}
 
           <button
             onClick={handleLogout}
