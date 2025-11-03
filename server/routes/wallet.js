@@ -91,6 +91,57 @@ router.post('/fund', auth, async (req, res) => {
   }
 });
 
+// Manual wallet funding (for testing/admin)
+router.post('/fund-manual', auth, async (req, res) => {
+  try {
+    const { amount } = req.body;
+
+    if (!amount || amount < 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Minimum funding amount is ₦100'
+      });
+    }
+
+    const user = await User.findById(req.userId);
+    const previousBalance = user.walletBalance;
+    
+    user.walletBalance += parseFloat(amount);
+    await user.save();
+
+    const reference = `MANUAL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    await Transaction.create({
+      user: req.userId,
+      serviceType: 'wallet-funding',
+      recipient: user.email,
+      amount: parseFloat(amount),
+      previousBalance: previousBalance,
+      newBalance: user.walletBalance,
+      status: 'success',
+      reference: reference,
+      metadata: { type: 'manual_funding', method: 'instant' }
+    });
+
+    console.log(`✅ Manual funding: ₦${amount} added to ${user.email}`); // ✅ FIXED
+
+    res.json({
+      success: true,
+      message: 'Wallet funded successfully',
+      balance: user.walletBalance,
+      amount_added: parseFloat(amount)
+    });
+
+  } catch (error) {
+    console.error('Manual funding error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Wallet funding failed',
+      error: error.message
+    });
+  }
+});
+
 // Verify Paystack Payment
 router.get('/verify-payment/:reference', auth, async (req, res) => {
   try {
@@ -257,54 +308,5 @@ router.get('/history', auth, async (req, res) => {
     });
   }
 });
-// Manual wallet funding (for testing/admin)
-router.post('/fund-manual', auth, async (req, res) => {
-  try {
-    const { amount } = req.body;
 
-    if (!amount || amount < 100) {
-      return res.status(400).json({
-        success: false,
-        message: 'Minimum funding amount is ₦100'
-      });
-    }
-
-    const user = await User.findById(req.userId);
-    const previousBalance = user.walletBalance;
-    
-    user.walletBalance += parseFloat(amount);
-    await user.save();
-
-    const reference = `MANUAL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
-    await Transaction.create({
-      user: req.userId,
-      serviceType: 'wallet-funding',
-      recipient: user.email,
-      amount: parseFloat(amount),
-      previousBalance: previousBalance,
-      newBalance: user.walletBalance,
-      status: 'success',
-      reference: reference,
-      metadata: { type: 'manual_funding', method: 'instant' }
-    });
-
-    console.log(`✅ Manual funding: ₦${amount} added to ${user.email}`);
-
-    res.json({
-      success: true,
-      message: 'Wallet funded successfully',
-      balance: user.walletBalance,
-      amount_added: parseFloat(amount)
-    });
-
-  } catch (error) {
-    console.error('Manual funding error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Wallet funding failed',
-      error: error.message
-    });
-  }
-});
 module.exports = router;
