@@ -14,7 +14,7 @@ router.post('/register', async (req, res) => {
   try {
     const { name, email, phone, password } = req.body;
 
-    console.log('Registration attempt:', { name, email, phone }); // Debug log
+    console.log('Registration attempt:', { name, email, phone });
 
     // Validation
     if (!name || !email || !phone || !password) {
@@ -43,11 +43,12 @@ router.post('/register', async (req, res) => {
       phone,
       password,
       referralCode: generateReferralCode(),
-      walletBalance: 0
+      walletBalance: 0,
+      role: 'user' // Default role
     });
 
     await user.save();
-    console.log('User created successfully:', user.email); // Debug log
+    console.log('✅ User created successfully:', user.email);
 
     // Generate JWT token
     const token = jwt.sign(
@@ -66,12 +67,13 @@ router.post('/register', async (req, res) => {
         email: user.email,
         phone: user.phone,
         walletBalance: user.walletBalance,
-        referralCode: user.referralCode
+        referralCode: user.referralCode,
+        role: user.role
       }
     });
 
   } catch (error) {
-    console.error('Registration error:', error); // Debug log
+    console.error('❌ Registration error:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Registration failed', 
@@ -85,7 +87,7 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    console.log('Login attempt:', email); // Debug log
+    console.log('Login attempt:', email);
 
     // Validation
     if (!email || !password) {
@@ -101,7 +103,7 @@ router.post('/login', async (req, res) => {
     });
 
     if (!user) {
-      console.log('User not found:', email); // Debug log
+      console.log('❌ User not found:', email);
       return res.status(401).json({ 
         success: false, 
         message: 'Invalid email or password' 
@@ -111,14 +113,14 @@ router.post('/login', async (req, res) => {
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      console.log('Invalid password for:', email); // Debug log
+      console.log('❌ Invalid password for:', email);
       return res.status(401).json({ 
         success: false, 
         message: 'Invalid email or password' 
       });
     }
 
-    console.log('Login successful:', user.email); // Debug log
+    console.log('✅ Login successful:', user.email, 'Role:', user.role);
 
     // Generate JWT token
     const token = jwt.sign(
@@ -137,12 +139,13 @@ router.post('/login', async (req, res) => {
         email: user.email,
         phone: user.phone,
         walletBalance: user.walletBalance,
-        referralCode: user.referralCode
+        referralCode: user.referralCode,
+        role: user.role || 'user' // Include role
       }
     });
 
   } catch (error) {
-    console.error('Login error:', error); // Debug log
+    console.error('❌ Login error:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Login failed', 
@@ -163,12 +166,25 @@ router.get('/profile', auth, async (req, res) => {
       });
     }
 
+    console.log('✅ Profile loaded:', user.email, 'Role:', user.role);
+
     res.json({ 
       success: true, 
-      user 
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        walletBalance: user.walletBalance,
+        referralCode: user.referralCode,
+        role: user.role || 'user', // Ensure role is always returned
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
     });
   } catch (error) {
-    console.error('Profile error:', error);
+    console.error('❌ Profile error:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Failed to get profile',
@@ -210,6 +226,8 @@ router.put('/profile', auth, async (req, res) => {
 
     await user.save();
 
+    console.log('✅ Profile updated:', user.email);
+
     res.json({
       success: true,
       message: 'Profile updated successfully',
@@ -219,12 +237,13 @@ router.put('/profile', auth, async (req, res) => {
         email: user.email,
         phone: user.phone,
         walletBalance: user.walletBalance,
-        referralCode: user.referralCode
+        referralCode: user.referralCode,
+        role: user.role || 'user'
       }
     });
 
   } catch (error) {
-    console.error('Update profile error:', error);
+    console.error('❌ Update profile error:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Failed to update profile',
