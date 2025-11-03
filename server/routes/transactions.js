@@ -168,14 +168,18 @@ router.post('/initialize-payment', auth, async (req, res) => {
     // Create pending transaction
     const transaction = await Transaction.create({
       user: req.userId,
-      type: 'credit',
       serviceType: 'wallet-funding',
-      amount: amount,
+      amount: Number(amount),
       reference: reference,
       status: 'pending',
-      previousBalance: user.balance,
+      previousBalance: Number(user.balance),
+      newBalance: Number(user.balance),
       recipient: user.email,
-      description: 'Wallet Funding'
+      network: 'Paystack',
+      metadata: {
+        paymentMethod: 'paystack',
+        description: 'Wallet Funding'
+      }
     });
 
     // Initialize Paystack payment
@@ -183,9 +187,9 @@ router.post('/initialize-payment', auth, async (req, res) => {
       'https://api.paystack.co/transaction/initialize',
       {
         email: user.email,
-        amount: amount * 100, // Paystack uses kobo (amount in kobo)
+        amount: amount * 100, // Paystack uses kobo
         reference: reference,
-        callback_url: `${process.env.FRONTEND_URL}/dashboard?payment=success`,
+        callback_url: `${process.env.FRONTEND_URL}/dashboard?payment=success&reference=${reference}`,
         metadata: {
           userId: user._id.toString(),
           transactionId: transaction._id.toString(),
@@ -226,16 +230,17 @@ router.post('/initialize-payment', auth, async (req, res) => {
   }
 });
 
-// Paystack Webhook - This is called by Paystack when payment is successful
+// Paystack Webhook
 router.post('/paystack-webhook', async (req, res) => {
   try {
-    // Verify the webhook is from Paystack
+    // Verify webhook signature
     const hash = crypto
       .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
       .update(JSON.stringify(req.body))
       .digest('hex');
 
     if (hash !== req.headers['x-paystack-signature']) {
+      console.error('Invalid webhook signature');
       return res.status(401).json({
         success: false,
         message: 'Invalid signature'
@@ -246,21 +251,22 @@ router.post('/paystack-webhook', async (req, res) => {
 
     // Handle successful charge
     if (event.event === 'charge.success') {
-      const { reference, amount, status } = event.data;
+      const { reference, amount } = event.data;
 
-      // Find the transaction
+      // Find transaction
       const transaction = await Transaction.findOne({ reference });
       
       if (!transaction) {
         console.error('Transaction not found:', reference);
-        return res.status(404).json({
+        return res.status(200).json({
           success: false,
           message: 'Transaction not found'
         });
       }
 
       // Check if already processed
-      if (transaction.status === 'completed') {
+      if (transaction.status === 'success') {
+        console.log('Transaction already processed:', reference);
         return res.status(200).json({
           success: true,
           message: 'Transaction already processed'
@@ -271,26 +277,26 @@ router.post('/paystack-webhook', async (req, res) => {
       const user = await User.findById(transaction.user);
       if (!user) {
         console.error('User not found:', transaction.user);
-        return res.status(404).json({
+        return res.status(200).json({
           success: false,
           message: 'User not found'
         });
       }
 
       // Convert amount from kobo to naira
-      const amountInNaira = amount / 100;
+      const amountInNaira = Number(amount) / 100;
 
       // Update user balance
-      user.balance += amountInNaira;
+      user.balance = Number(user.balance) + amountInNaira;
       await user.save();
 
       // Update transaction
-      transaction.status = 'completed';
-      transaction.newBalance = user.balance;
+      transaction.status = 'success';
+      transaction.newBalance = Number(user.balance);
       transaction.completedAt = new Date();
       await transaction.save();
 
-      console.log(`Payment successful: ${reference}, User: ${user.email}, Amount: ₦${amountInNaira}`);
+      console.log(`✅ Payment successful: ${reference}, User: ${user.email}, Amount: ₦${amountInNaira}, New Balance: ₦${user.balance}`);
     }
 
     // Respond to Paystack
@@ -309,7 +315,7 @@ router.post('/paystack-webhook', async (req, res) => {
   }
 });
 
-// Verify payment manually (fallback if webhook fails)
+// Verify payment manually
 router.get('/verify-payment/:reference', auth, async (req, res) => {
   try {
     const { reference } = req.params;
@@ -337,27 +343,30 @@ router.get('/verify-payment/:reference', auth, async (req, res) => {
         });
       }
 
-      // If already completed, return success
-      if (transaction.status === 'completed') {
+      // If already processed
+      if (transaction.status === 'success') {
         return res.json({
           success: true,
           message: 'Payment already verified',
-          transaction
+          transaction,
+          newBalance: transaction.newBalance
         });
       }
 
       // Update user balance
       const user = await User.findById(req.userId);
-      const amountInNaira = data.amount / 100;
+      const amountInNaira = Number(data.amount) / 100;
       
-      user.balance += amountInNaira;
+      user.balance = Number(user.balance) + amountInNaira;
       await user.save();
 
       // Update transaction
-      transaction.status = 'completed';
-      transaction.newBalance = user.balance;
+      transaction.status = 'success';
+      transaction.newBalance = Number(user.balance);
       transaction.completedAt = new Date();
       await transaction.save();
+
+      console.log(`✅ Payment verified: ${reference}, Amount: ₦${amountInNaira}, New Balance: ₦${user.balance}`);
 
       return res.json({
         success: true,
