@@ -13,8 +13,6 @@ import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminDashboard from './pages/AdminDashboard';
 
-// In your routes:
-<Route path="/admin" element={<AdminDashboard />} />
 function App() {
   return (
     <Router>
@@ -62,6 +60,13 @@ function App() {
         <Route path="/profile" element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        } />
+        
+        {/* Admin Route - Add this */}
+        <Route path="/admin" element={
+          <ProtectedRoute>
+            <AdminDashboard />
           </ProtectedRoute>
         } />
         
