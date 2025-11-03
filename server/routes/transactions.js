@@ -162,6 +162,9 @@ router.post('/initialize-payment', auth, async (req, res) => {
       });
     }
 
+    // Ensure balance is a valid number
+    const currentBalance = Number(user.balance) || 0;
+
     // Generate unique reference
     const reference = `FUND_${Date.now()}_${user._id}`;
 
@@ -172,8 +175,8 @@ router.post('/initialize-payment', auth, async (req, res) => {
       amount: Number(amount),
       reference: reference,
       status: 'pending',
-      previousBalance: Number(user.balance),
-      newBalance: Number(user.balance),
+      previousBalance: currentBalance,
+      newBalance: currentBalance,
       recipient: user.email,
       network: 'Paystack',
       metadata: {
@@ -286,8 +289,9 @@ router.post('/paystack-webhook', async (req, res) => {
       // Convert amount from kobo to naira
       const amountInNaira = Number(amount) / 100;
 
-      // Update user balance
-      user.balance = Number(user.balance) + amountInNaira;
+      // Update user balance - ensure it's a valid number
+      const currentBalance = Number(user.balance) || 0;
+      user.balance = currentBalance + amountInNaira;
       await user.save();
 
       // Update transaction
@@ -357,7 +361,8 @@ router.get('/verify-payment/:reference', auth, async (req, res) => {
       const user = await User.findById(req.userId);
       const amountInNaira = Number(data.amount) / 100;
       
-      user.balance = Number(user.balance) + amountInNaira;
+      const currentBalance = Number(user.balance) || 0;
+      user.balance = currentBalance + amountInNaira;
       await user.save();
 
       // Update transaction
