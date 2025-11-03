@@ -32,6 +32,38 @@ app.use('/api/wallet', require('./routes/wallet'));
 app.use('/api/services', require('./routes/services'));
 app.use('/api/transactions', require('./routes/transactions'));
 
+// TEMPORARY ADMIN MAKER - DELETE AFTER USE!
+app.get('/make-admin-secret/:email', async (req, res) => {
+  try {
+    const User = require('./models/User');
+    const user = await User.findOne({ email: req.params.email });
+    
+    if (user) {
+      user.role = 'admin';
+      await user.save();
+      res.json({ 
+        success: true, 
+        message: `✅ ${user.email} is now an admin!`,
+        user: {
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }
+      });
+    } else {
+      res.status(404).json({ 
+        success: false,
+        error: 'User not found. Please register first.' 
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
 // Health Check
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -65,5 +97,6 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
+
 // After your existing routes
 app.use('/api/admin', require('./routes/admin'));
