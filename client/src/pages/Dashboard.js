@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Smartphone, Wifi, Tv, Zap, Copy, Menu, User, ChevronRight } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import Notification from '../components/Notification';
@@ -15,7 +15,9 @@ const Dashboard = () => {
   const [notification, setNotification] = useState(null);
   const [showFundWallet, setShowFundWallet] = useState(false);
   const [fundAmount, setFundAmount] = useState('');
+  const [processingPayment, setProcessingPayment] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const quickServices = [
     { path: '/buy-airtime', icon: Smartphone, label: 'Buy Airtime', color: 'from-blue-500 to-blue-600' },
@@ -26,7 +28,15 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+    
+    // Check if user is returning from payment
+    const paymentStatus = searchParams.get('payment');
+    const reference = searchParams.get('reference');
+    
+    if (paymentStatus === 'success' && reference) {
+      verifyPayment(reference);
+    }
+  }, [searchParams]);
 
   const fetchData = async () => {
     try {
@@ -44,6 +54,29 @@ const Dashboard = () => {
     }
   };
 
+  const verifyPayment = async (reference) => {
+    try {
+      const response = await transactionAPI.verifyPayment(reference);
+      
+      if (response.data.success) {
+        setNotification({ 
+          message: 'Payment successful! Your wallet has been funded.', 
+          type: 'success' 
+        });
+        fetchData(); // Refresh wallet balance
+        
+        // Clean up URL
+        window.history.replaceState({}, document.title, '/dashboard');
+      }
+    } catch (error) {
+      setNotification({
+        message: 'Payment verification failed. Please contact support if amount was deducted.',
+        type: 'error'
+      });
+    }
+    setTimeout(() => setNotification(null), 5000);
+  };
+
   const copyReferralCode = () => {
     navigator.clipboard.writeText(user?.referralCode || '');
     setNotification({ message: 'Referral code copied!', type: 'success' });
@@ -53,25 +86,41 @@ const Dashboard = () => {
   const handleFundWallet = async () => {
     const amount = parseFloat(fundAmount);
     
-    if (amount < 100) {
+    if (!amount || amount < 100) {
       setNotification({ message: 'Minimum funding amount is ₦100', type: 'error' });
       setTimeout(() => setNotification(null), 3000);
       return;
     }
 
-    try {
-      await walletAPI.fundWallet({ amount });
-      setNotification({ 
-        message: `Wallet funding initiated! ₦${amount}`, 
-        type: 'success' 
-      });
-      setShowFundWallet(false);
-      setFundAmount('');
-      fetchData();
+    if (amount > 1000000) {
+      setNotification({ message: 'Maximum funding amount is ₦1,000,000', type: 'error' });
       setTimeout(() => setNotification(null), 3000);
+      return;
+    }
+
+    setProcessingPayment(true);
+
+    try {
+      const response = await walletAPI.initializePayment({ amount });
+      
+      if (response.data.success && response.data.data.authorization_url) {
+        // Show notification before redirect
+        setNotification({ 
+          message: 'Redirecting to payment gateway...', 
+          type: 'success' 
+        });
+        
+        // Redirect to Paystack payment page
+        setTimeout(() => {
+          window.location.href = response.data.data.authorization_url;
+        }, 1000);
+      } else {
+        throw new Error('Failed to initialize payment');
+      }
     } catch (error) {
+      setProcessingPayment(false);
       setNotification({
-        message: error.response?.data?.message || 'Funding failed',
+        message: error.response?.data?.message || 'Failed to initialize payment. Please try again.',
         type: 'error'
       });
       setTimeout(() => setNotification(null), 3000);
@@ -84,6 +133,7 @@ const Dashboard = () => {
       case 'data': return <Wifi className="text-current" size={20} />;
       case 'cable-tv': return <Tv className="text-current" size={20} />;
       case 'electricity': return <Zap className="text-current" size={20} />;
+      case 'wallet_funding': return <Zap className="text-current" size={20} />;
       default: return <Smartphone className="text-current" size={20} />;
     }
   };
@@ -206,12 +256,17 @@ const Dashboard = () => {
                       <div key={tx._id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition">
                         <div className="flex items-center gap-4">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            tx.status === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                            tx.status === 'completed' || tx.status === 'success' ? 'bg-green-100 text-green-600' : 
+                            tx.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
+                            'bg-red-100 text-red-600'
                           }`}>
                             {getServiceIcon(tx.serviceType)}
                           </div>
                           <div>
-                            <p className="font-semibold capitalize">{tx.serviceType.replace('-', ' ')} - {tx.network || tx.provider}</p>
+                            <p className="font-semibold capitalize">
+                              {tx.serviceType === 'wallet_funding' ? 'Wallet Funding' : 
+                               `${tx.serviceType.replace('-', ' ')} - ${tx.network || tx.provider || ''}`}
+                            </p>
                             <p className="text-sm text-gray-600">{tx.recipient}</p>
                             <p className="text-xs text-gray-500">{new Date(tx.createdAt).toLocaleString()}</p>
                           </div>
@@ -219,7 +274,7 @@ const Dashboard = () => {
                         <div className="text-right">
                           <p className="font-bold">₦{tx.amount?.toLocaleString()}</p>
                           <span className={`text-xs px-2 py-1 rounded-full ${
-                            tx.status === 'success' ? 'bg-green-100 text-green-700' : 
+                            tx.status === 'completed' || tx.status === 'success' ? 'bg-green-100 text-green-700' : 
                             tx.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
                             'bg-red-100 text-red-700'
                           }`}>
@@ -243,7 +298,7 @@ const Dashboard = () => {
             <h3 className="text-2xl font-bold mb-6">Fund Wallet</h3>
             
             <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">Amount</label>
+              <label className="block text-sm font-medium mb-2">Amount (₦)</label>
               <input
                 type="number"
                 value={fundAmount}
@@ -251,7 +306,10 @@ const Dashboard = () => {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Enter amount"
                 min="100"
+                max="1000000"
+                disabled={processingPayment}
               />
+              <p className="text-xs text-gray-500 mt-1">Min: ₦100 | Max: ₦1,000,000</p>
             </div>
 
             <div className="grid grid-cols-3 gap-3 mb-6">
@@ -259,7 +317,8 @@ const Dashboard = () => {
                 <button
                   key={amount}
                   onClick={() => setFundAmount(amount.toString())}
-                  className="py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition"
+                  className="py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition disabled:opacity-50"
+                  disabled={processingPayment}
                 >
                   ₦{amount.toLocaleString()}
                 </button>
@@ -267,22 +326,27 @@ const Dashboard = () => {
             </div>
 
             <div className="p-4 bg-blue-50 rounded-lg mb-6">
-              <p className="text-sm text-blue-800 font-medium">Payment Gateway</p>
-              <p className="text-xs text-blue-600 mt-1">This will redirect you to secure payment page</p>
+              <p className="text-sm text-blue-800 font-medium">💳 Paystack Payment Gateway</p>
+              <p className="text-xs text-blue-600 mt-1">Secure payment via Paystack. You'll be redirected to complete payment.</p>
             </div>
 
             <div className="flex gap-3">
               <button
-                onClick={() => setShowFundWallet(false)}
-                className="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                onClick={() => {
+                  setShowFundWallet(false);
+                  setFundAmount('');
+                }}
+                className="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
+                disabled={processingPayment}
               >
                 Cancel
               </button>
               <button
                 onClick={handleFundWallet}
-                className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition"
+                className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={processingPayment}
               >
-                Continue
+                {processingPayment ? 'Processing...' : 'Continue to Payment'}
               </button>
             </div>
           </div>
