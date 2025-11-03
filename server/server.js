@@ -12,9 +12,13 @@ const app = express();
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-paystack-signature']
 }));
 
+// IMPORTANT: Raw body parser for Paystack webhook BEFORE express.json()
+app.use('/api/transactions/paystack-webhook', express.raw({ type: 'application/json' }));
+
+// Regular JSON parser for all other routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -31,6 +35,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/wallet', require('./routes/wallet'));
 app.use('/api/services', require('./routes/services'));
 app.use('/api/transactions', require('./routes/transactions'));
+app.use('/api/admin', require('./routes/admin'));
 
 // TEMPORARY ADMIN MAKER - DELETE AFTER USE!
 app.get('/make-admin-secret/:email', async (req, res) => {
@@ -69,7 +74,8 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     message: 'OneVTU API is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    paystack_configured: !!(process.env.PAYSTACK_SECRET_KEY && process.env.PAYSTACK_PUBLIC_KEY)
   });
 });
 
@@ -96,7 +102,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`💳 Paystack: ${process.env.PAYSTACK_SECRET_KEY ? '✅ Configured' : '❌ Not Configured'}`);
 });
-
-// After your existing routes
-app.use('/api/admin', require('./routes/admin'));
