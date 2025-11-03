@@ -50,11 +50,13 @@ const Profile = () => {
       setAuth(localStorage.getItem('token'), response.data.user);
       setUser(response.data.user);
       setNotification({ message: 'Profile updated successfully!', type: 'success' });
+      setTimeout(() => setNotification(null), 3000);
     } catch (error) {
       setNotification({
         message: error.response?.data?.message || 'Update failed',
         type: 'error'
       });
+      setTimeout(() => setNotification(null), 3000);
     } finally {
       setLoading(false);
     }
@@ -65,11 +67,13 @@ const Profile = () => {
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       setNotification({ message: 'Passwords do not match!', type: 'error' });
+      setTimeout(() => setNotification(null), 3000);
       return;
     }
 
     if (passwordData.newPassword.length < 8) {
       setNotification({ message: 'Password must be at least 8 characters', type: 'error' });
+      setTimeout(() => setNotification(null), 3000);
       return;
     }
 
@@ -83,11 +87,13 @@ const Profile = () => {
 
       setNotification({ message: 'Password updated successfully!', type: 'success' });
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setTimeout(() => setNotification(null), 3000);
     } catch (error) {
       setNotification({
         message: error.response?.data?.message || 'Password update failed',
         type: 'error'
       });
+      setTimeout(() => setNotification(null), 3000);
     } finally {
       setLoading(false);
     }
@@ -96,8 +102,9 @@ const Profile = () => {
   const handleFundWallet = async () => {
     const amount = parseFloat(fundAmount);
     
-    if (amount < 100) {
+    if (!amount || amount < 100) {
       setNotification({ message: 'Minimum funding amount is ₦100', type: 'error' });
+      setTimeout(() => setNotification(null), 3000);
       return;
     }
 
@@ -106,21 +113,24 @@ const Profile = () => {
     try {
       const response = await walletAPI.fundWallet({ amount });
       
-      // In production, this would redirect to payment gateway
-      // For now, we'll simulate success
-      setNotification({ 
-        message: `Wallet funding initiated! ₦${amount}`, 
-        type: 'success' 
-      });
-      
-      setShowFundModal(false);
-      setFundAmount('');
-      fetchWallet();
+      // Redirect to Paystack payment page
+      if (response.data.data && response.data.data.authorization_url) {
+        window.location.href = response.data.data.authorization_url;
+      } else {
+        setNotification({ 
+          message: 'Payment initialization failed. Please try again.', 
+          type: 'error' 
+        });
+        setTimeout(() => setNotification(null), 3000);
+      }
+
     } catch (error) {
+      console.error('Fund wallet error:', error);
       setNotification({
-        message: error.response?.data?.message || 'Funding failed',
+        message: error.response?.data?.message || 'Funding failed. Please try again.',
         type: 'error'
       });
+      setTimeout(() => setNotification(null), 3000);
     } finally {
       setLoading(false);
     }
@@ -129,6 +139,7 @@ const Profile = () => {
   const copyReferralCode = () => {
     navigator.clipboard.writeText(user?.referralCode || '');
     setNotification({ message: 'Referral code copied!', type: 'success' });
+    setTimeout(() => setNotification(null), 3000);
   };
 
   return (
@@ -171,10 +182,10 @@ const Profile = () => {
 
             <div className="bg-white rounded-xl shadow-sm mb-6">
               <div className="border-b">
-                <div className="flex">
+                <div className="flex overflow-x-auto">
                   <button
                     onClick={() => setActiveTab('profile')}
-                    className={`px-6 py-4 font-medium transition ${
+                    className={`px-6 py-4 font-medium transition whitespace-nowrap ${
                       activeTab === 'profile'
                         ? 'border-b-2 border-blue-600 text-blue-600'
                         : 'text-gray-600 hover:text-blue-600'
@@ -184,7 +195,7 @@ const Profile = () => {
                   </button>
                   <button
                     onClick={() => setActiveTab('security')}
-                    className={`px-6 py-4 font-medium transition ${
+                    className={`px-6 py-4 font-medium transition whitespace-nowrap ${
                       activeTab === 'security'
                         ? 'border-b-2 border-blue-600 text-blue-600'
                         : 'text-gray-600 hover:text-blue-600'
@@ -194,7 +205,7 @@ const Profile = () => {
                   </button>
                   <button
                     onClick={() => setActiveTab('wallet')}
-                    className={`px-6 py-4 font-medium transition ${
+                    className={`px-6 py-4 font-medium transition whitespace-nowrap ${
                       activeTab === 'wallet'
                         ? 'border-b-2 border-blue-600 text-blue-600'
                         : 'text-gray-600 hover:text-blue-600'
@@ -204,7 +215,7 @@ const Profile = () => {
                   </button>
                   <button
                     onClick={() => setActiveTab('referral')}
-                    className={`px-6 py-4 font-medium transition ${
+                    className={`px-6 py-4 font-medium transition whitespace-nowrap ${
                       activeTab === 'referral'
                         ? 'border-b-2 border-blue-600 text-blue-600'
                         : 'text-gray-600 hover:text-blue-600'
@@ -325,12 +336,12 @@ const Profile = () => {
                       <h4 className="font-bold mb-4">Payment Methods</h4>
                       <div className="space-y-3">
                         <div className="flex items-center justify-between p-4 bg-white rounded-lg">
-                          <span>Paystack</span>
+                          <span className="font-medium">Paystack</span>
                           <span className="text-green-600 font-medium">Active</span>
                         </div>
                         <div className="flex items-center justify-between p-4 bg-white rounded-lg">
-                          <span>Bank Transfer</span>
-                          <span className="text-green-600 font-medium">Active</span>
+                          <span className="font-medium">Bank Transfer</span>
+                          <span className="text-gray-400 font-medium">Coming Soon</span>
                         </div>
                       </div>
                     </div>
@@ -341,8 +352,8 @@ const Profile = () => {
                   <div className="space-y-6">
                     <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-6 text-white">
                       <h3 className="text-xl font-bold mb-4">Your Referral Code</h3>
-                      <div className="flex items-center gap-3 mb-4">
-                        <code className="text-3xl font-mono font-bold flex-1">{user?.referralCode || 'N/A'}</code>
+                      <div className="flex items-center gap-3 mb-4 bg-white/20 p-4 rounded-lg">
+                        <code className="text-2xl font-mono font-bold flex-1">{user?.referralCode || 'N/A'}</code>
                         <button
                           onClick={copyReferralCode}
                           className="p-3 bg-white/20 hover:bg-white/30 rounded-lg transition"
@@ -395,23 +406,32 @@ const Profile = () => {
                 <button
                   key={amount}
                   onClick={() => setFundAmount(amount.toString())}
-                  className="py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition"
+                  className="py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition text-sm"
                 >
                   ₦{amount.toLocaleString()}
                 </button>
               ))}
             </div>
 
+            <div className="p-4 bg-blue-50 rounded-lg mb-6">
+              <p className="text-sm text-blue-800 font-medium">Paystack Payment</p>
+              <p className="text-xs text-blue-600 mt-1">You'll be redirected to secure payment page</p>
+            </div>
+
             <div className="flex gap-3">
               <button
-                onClick={() => setShowFundModal(false)}
-                className="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                onClick={() => {
+                  setShowFundModal(false);
+                  setFundAmount('');
+                }}
+                disabled={loading}
+                className="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleFundWallet}
-                disabled={loading}
+                disabled={loading || !fundAmount}
                 className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition disabled:opacity-50"
               >
                 {loading ? 'Processing...' : 'Continue'}
